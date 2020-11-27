@@ -1,33 +1,36 @@
 const express = require('express')
-// const mongoose = require('mongoose')
+const mongoose = require('mongoose')
 const students = require('./students')
+const cors = require('cors')
 
-// const Student = require('./models/Student')
+const Student = require('./models/Student')
 
 const app = express()
 
-// mongoose.connect('mongodb://localhost/studentsdata',{
-//     useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true
-// }, (err)=>{
-//     if(err){
-//         console.log('error connecting the database' + err)
-//     }
-//     else
-//     {
-//         console.log('Successfully connected to the database')
-//     }
-// })
+app.use(cors())
 
-// const db = mongoose.connection;
+mongoose.connect('mongodb://localhost/studentsdata',{
+    useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true
+}, (err)=>{
+    if(err){
+        console.log('error connecting the database' + err)
+    }
+    else
+    {
+        console.log('Successfully connected to the database')
+    }
+})
 
-// db.once('open', async () => {
-//     if((await Student.countDocuments().exec()) > 0){
-//         return;
-//     }
-//     Student.insertMany(students).then((res)=> res.json('Students added successfully')).catch((err) => console.log(err))
-// })
+const db = mongoose.connection;
 
-app.get('/users',(req,res)=>{
+db.once('open', async () => {
+    if((await Student.countDocuments().exec()) > 0){
+        return;
+    }
+    Student.insertMany(students).then((res)=> res.json('Students added successfully')).catch(err => res.status(400).json('Error: ' + err))
+})
+
+app.get('/students',async (req,res)=>{
     const page = Number.parseInt(req.query.page)
     const limit = Number.parseInt(req.query.limit)
 
@@ -36,7 +39,7 @@ app.get('/users',(req,res)=>{
 
     const results = {};
 
-    if(endIndex < students.length){
+    if(endIndex < await Student.countDocuments().exec()){
 
         results.next = {
             page: page + 1,
@@ -52,16 +55,16 @@ app.get('/users',(req,res)=>{
         }
     }
 
-    results.current = students.slice(startIndex,endIndex);
-    res.json(results)
+    // results.current = stt.slice(startIndex,endIndex)
+    // res.json(results)
     
     // results.current = users.slice(startIndex, endIndex);
-    // try{
-        // results.current = students.slice(startIndex, endIndex);
-        // res.json(results)
-    // } catch (err){
-    //     res.status(400).json({ message: err.message })
-    // }
+    try{
+        results.current = await Student.find().limit(limit).skip(startIndex).exec();
+        res.json(results)
+    } catch (err){
+        res.status(400).json({ message: err.message })
+    }
 })
 
 app.listen(5000,()=>{

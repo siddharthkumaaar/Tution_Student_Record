@@ -139,3 +139,5 @@ const students = [{
     "age": 14,
     "grade":"C"
   }]
+
+  module.exports = students
